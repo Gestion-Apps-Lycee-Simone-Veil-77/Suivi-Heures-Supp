@@ -9,7 +9,7 @@ import {
   submitHSE, submitPACTE, submitHNF, adminSubmitDeclaration,
   getBudgetHSE, ajouterBudgetHSE, supprimerBudgetHSE,
   getAllPendingForAdmin, adminTraiterDeclaration, getAllToPayForAdmin, adminMarquerPayee,
-  getStatsHSE, getMyRecords, clearConfigCache
+  getStatsHSE, getMyRecords, clearConfigCache, getDirectorEmails, getDirecteurNom, setDirecteurNom
 } from './service.js';
 
 export const router = Router();
@@ -35,6 +35,11 @@ router.use(requireAuth());
 
 function wrap(handler) {
   return async (req, res) => {
+    // Évite tout cache navigateur (304 sur revalidation, etc.) sur les
+    // réponses API — mieux vaut une requête réseau de plus qu'une confusion
+    // entre "les données n'ont pas changé" et "le navigateur ne les a pas
+    // redemandées".
+    res.set('Cache-Control', 'no-store');
     try {
       res.json(await handler(req));
     } catch (err) {
@@ -45,9 +50,12 @@ function wrap(handler) {
 
 // ---------- Identité ----------
 router.get('/me', wrap(async req => {
-  const identite = await getMonIdentite(req.userEmail);
-  const admin = await isAdmin(req.userEmail);
-  return { ...identite, isAdmin: admin };
+  const [identite, admin, directorEmails, directeurNom] = await Promise.all([
+    getMonIdentite(req.userEmail), isAdmin(req.userEmail), getDirectorEmails(), getDirecteurNom()
+  ]);
+  // Utilisé par le menu pour transformer "Mr. LEGER" en lien mailto: — null
+  // si aucune ligne "Directeur" n'est encore renseignée dans ConfigAdmin.
+  return { ...identite, isAdmin: admin, directeurEmail: directorEmails[0] || null, directeurNom };
 }));
 
 // ---------- Configs / bootstrap formulaires ----------
@@ -85,3 +93,4 @@ router.post('/admin/clear-cache', wrap(async req => {
   clearConfigCache();
   return 'OK';
 }));
+router.post('/admin/directeur-nom', wrap(req => setDirecteurNom(req.userEmail, req.body.nom)));

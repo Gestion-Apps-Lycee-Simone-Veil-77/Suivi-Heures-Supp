@@ -38,39 +38,70 @@ export async function requireAdmin(email) {
 //   - Direction (un groupe, éventuellement plus large) : notifiée UNIQUEMENT
 //     avec le secrétariat quand une HNF est "validée" (= modifiée, voir
 //     adminTraiterDeclaration).
-// Mis en cache 30 min comme les autres Config*, purgé par "Rafraîchir les configs".
+// Pas de cache (voir plus bas) : la fraîcheur immédiate compte plus ici.
 
-async function getEmailsByRole(role) {
-  const { rows } = await readSheetAsObjects('ConfigAdmin');
-  const target = role.trim().toLowerCase();
-  return rows
-    .filter(r => String(r['Rôle'] || '').trim().toLowerCase() === target)
-    .map(r => String(r.Email || '').trim())
-    .filter(Boolean);
+function normalizeHeader(s) {
+  const decomposed = String(s || '').normalize('NFD');
+  let out = '';
+  for (const ch of decomposed) {
+    const code = ch.codePointAt(0);
+    if (code >= 768 && code <= 879) continue;
+    out += ch;
+  }
+  return out.trim().toLowerCase();
 }
 
+async function getConfigAdminRowsByRole(role) {
+  const { rows, headers } = await readSheetAsObjects('ConfigAdmin');
+  const roleHeader = headers.find(h => normalizeHeader(h) === 'role');
+  if (!roleHeader) return { rows: [], headers, roleHeader: null };
+  const target = normalizeHeader(role);
+  return { rows: rows.filter(r => normalizeHeader(r[roleHeader]) === target), headers, roleHeader };
+}
+
+async function getEmailsByRole(role) {
+  const { rows } = await getConfigAdminRowsByRole(role);
+  return rows.map(r => String(r.Email || '').trim()).filter(Boolean);
+}
+
+// Pas de cache ici (contrairement aux Config* ci-dessus) : ce sont des
+// lectures peu fréquentes (connexion + quelques actions admin), la fraîcheur
+// immédiate compte plus que le nombre d'appels à l'API Sheets.
 export async function getDirectorEmails() {
-  const cached = cacheGet('directorEmails');
-  if (cached) return cached;
-  const result = await getEmailsByRole('Directeur');
-  cacheSet('directorEmails', result, 1800);
-  return result;
+  return getEmailsByRole('Directeur');
+}
+
+// Nom affiché dans le menu ("... merci de contacter <nom>"), stocké dans la
+// colonne "Nom" de la ligne "Directeur" de ConfigAdmin. Modifiable depuis
+// Administration (voir setDirecteurNom) — null si jamais renseigné, auquel
+// cas le frontend garde son texte par défaut ("Mr. LEGER").
+export async function getDirecteurNom() {
+  const { rows } = await getConfigAdminRowsByRole('Directeur');
+  const nom = rows[0] && String(rows[0].Nom || '').trim();
+  return nom || null;
+}
+
+export async function setDirecteurNom(adminEmail, nom) {
+  await requireAdmin(adminEmail);
+  await ensureColumns('ConfigAdmin', ['Email', 'Rôle', 'Nom']);
+  const { rows, headers, roleHeader } = await getConfigAdminRowsByRole('Directeur');
+  if (!roleHeader || !rows.length) {
+    const err = new Error('Aucune ligne avec le rôle "Directeur" dans ConfigAdmin. Ajoutez-en une avant de définir un nom affiché.');
+    err.status = 400;
+    throw err;
+  }
+  const row = rows[0];
+  row.Nom = String(nom || '').trim();
+  await updateRow('ConfigAdmin', row.__row, headers, row);
+  return 'OK';
 }
 
 export async function getDirectionEmails() {
-  const cached = cacheGet('directionEmails');
-  if (cached) return cached;
-  const result = await getEmailsByRole('Direction');
-  cacheSet('directionEmails', result, 1800);
-  return result;
+  return getEmailsByRole('Direction');
 }
 
 export async function getSecretariatEmails() {
-  const cached = cacheGet('secretariatEmails');
-  if (cached) return cached;
-  const result = await getEmailsByRole('Secrétariat');
-  cacheSet('secretariatEmails', result, 1800);
-  return result;
+  return getEmailsByRole('Secrétariat');
 }
 
 // ---------- Identité / annuaire ----------
@@ -528,5 +559,5 @@ export async function setupWorkflowSheets() {
 }
 
 export function clearConfigCache() {
-  ['configHSE', 'configPACTE', 'configPersonnel', 'directorEmails', 'directionEmails', 'secretariatEmails'].forEach(cacheDel);
+  ['configHSE', 'configPACTE', 'configPersonnel'].forEach(cacheDel);
 }

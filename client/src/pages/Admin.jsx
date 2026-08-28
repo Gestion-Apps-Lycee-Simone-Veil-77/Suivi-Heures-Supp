@@ -105,6 +105,8 @@ export default function Admin() {
         </button>
       </div>
 
+      <ContactDirecteurSection api={api} currentNom={me.directeurNom} />
+
       <CreateForPersonSection api={api} personnelList={personnelList} onCreated={reloadPending} />
 
       <BudgetSection budget={budget} api={api} onChanged={reloadBudget} hnfRestant={filtre ? null : hnfRestant} />
@@ -170,6 +172,45 @@ function ShareLinkBox({ appUrl, api }) {
       <button className="mt-2 text-xs text-slate-400 underline" onClick={notifier}>
         Envoyer la notification de nouveau déploiement
       </button>
+    </div>
+  );
+}
+
+// ---------- Nom de contact affiché dans le menu ----------
+// Modifie la colonne "Nom" de la ligne "Directeur" dans ConfigAdmin — c'est ce
+// nom qui remplace "Mr. LEGER" dans le bandeau du menu principal.
+function ContactDirecteurSection({ api, currentNom }) {
+  const [nom, setNom] = useState(currentNom || '');
+  const [msg, setMsg] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setMsg({ type: 'loading', text: 'Enregistrement...' });
+    try {
+      await api.post('/admin/directeur-nom', { nom });
+      setMsg({ type: 'success', text: '✅ Nom mis à jour.' });
+    } catch (err) {
+      setMsg({ type: 'error', text: '❌ Erreur : ' + err.message });
+    }
+  }
+
+  return (
+    <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+      <label className="mb-1 block text-sm font-semibold text-slate-700">
+        👤 Nom de contact affiché dans le menu
+      </label>
+      <p className="mb-2 text-xs text-slate-400">
+        Remplace "Mr. LEGER" dans "Si vous rencontrez un problème, merci de contacter...". Nécessite une ligne avec le rôle "Directeur" dans ConfigAdmin (c'est son adresse email qui reçoit le lien mailto:).
+      </p>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input className="input flex-1" value={nom} onChange={e => setNom(e.target.value)} placeholder="Mr. LEGER" />
+        <button className="btn-secondary shrink-0" type="submit">Enregistrer</button>
+      </form>
+      {msg && (
+        <p className={`mt-2 text-sm font-semibold ${
+          msg.type === 'success' ? 'text-emerald-700' : msg.type === 'error' ? 'text-red-600' : 'text-slate-500'
+        }`}>{msg.text}</p>
+      )}
     </div>
   );
 }
@@ -404,6 +445,8 @@ function PendingBlock({ type, header, rows, api, onChanged }) {
     try {
       await api.post('/admin/traiter', { type, id, action, payload: { commentaireAdmin } });
       onChanged();
+    } catch (err) {
+      alert('❌ Erreur : ' + err.message);
     } finally {
       setBusyId(null);
     }
@@ -423,6 +466,8 @@ function PendingBlock({ type, header, rows, api, onChanged }) {
       await api.post('/admin/traiter', { type, id, action: 'modifier', payload: editValues });
       setEditingId(null);
       onChanged();
+    } catch (err) {
+      alert('❌ Erreur : ' + err.message);
     } finally {
       setBusyId(null);
     }
@@ -553,14 +598,27 @@ function StatsSection({ api }) {
     if (!contentRef.current) return;
     setExporting(true);
     try {
+      // Attendre que la police (Inter, chargée via Google Fonts) soit
+      // réellement appliquée avant la capture : sinon html2canvas peut
+      // photographier un instant où le texte utilise encore la police de
+      // repli du navigateur, avec une hauteur de ligne différente — d'où le
+      // texte qui chevauche les barres sur l'export (visuellement correct à
+      // l'écran, faussé seulement sur l'image capturée).
+      if (document.fonts?.ready) await document.fonts.ready;
+
       const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(contentRef.current, { backgroundColor: '#ffffff', scale: 2 });
       const stamp = new Date().toISOString().slice(0, 10);
       if (format === 'png') {
+        // Le lien doit être inséré dans le DOM avant .click() — dans
+        // certains navigateurs, cliquer un <a download> jamais attaché à la
+        // page ne déclenche rien (le téléchargement semblait "ne pas marcher").
         const link = document.createElement('a');
         link.download = `statistiques-hse-${stamp}.png`;
         link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
         link.click();
+        link.remove();
       } else {
         const { jsPDF } = await import('jspdf');
         const pdf = new jsPDF({
@@ -629,7 +687,7 @@ function BarList({ title, entries, compact }) {
           const pct = Math.round((value / total) * 100);
           return (
             <div key={label}>
-              <div className="mb-0.5 flex justify-between text-xs text-slate-600">
+              <div className="mb-1.5 flex justify-between text-xs leading-normal text-slate-600">
                 <span>{label}</span>
                 <span>{pct}% ({value} h)</span>
               </div>

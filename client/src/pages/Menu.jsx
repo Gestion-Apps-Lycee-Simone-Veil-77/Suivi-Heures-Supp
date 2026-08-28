@@ -24,7 +24,17 @@ export default function Menu() {
 
       <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-slate-700">
         <span>📩</span>
-        <span>Si vous rencontrez un problème, merci de contacter <strong>Mr. LEGER</strong>.</span>
+        <span>
+          Si vous rencontrez un problème, merci de contacter{' '}
+          {me.directeurEmail ? (
+            <a href={`mailto:${me.directeurEmail}`} className="font-bold underline decoration-primary-300 underline-offset-2 hover:text-primary-700">
+              {me.directeurNom || 'Mr. LEGER'}
+            </a>
+          ) : (
+            <strong>{me.directeurNom || 'Mr. LEGER'}</strong>
+          )}
+          .
+        </span>
       </div>
 
       <nav className="flex flex-col gap-2.5">
