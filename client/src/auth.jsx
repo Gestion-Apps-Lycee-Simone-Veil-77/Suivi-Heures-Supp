@@ -8,6 +8,12 @@ const AuthContext = createContext(null);
 // remplace Session.getActiveUser().getEmail() côté Apps Script.
 export function AuthProvider({ children }) {
   const [idToken, setIdToken] = useState(() => sessionStorage.getItem('idToken') || null);
+  // Passe à true seulement une fois initialize() effectivement appelé. Sans
+  // ça, LoginScreen pouvait tenter d'afficher le bouton avant que le script
+  // Google soit prêt (condition de course, plus visible en prod qu'en local
+  // selon la vitesse de chargement du script) : "Failed to render button
+  // before calling initialize()" et bouton absent.
+  const [gisReady, setGisReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -22,6 +28,7 @@ export function AuthProvider({ children }) {
         },
         auto_select: true
       });
+      setGisReady(true);
     }
     init();
     return () => { cancelled = true; };
@@ -45,7 +52,7 @@ export function AuthProvider({ children }) {
   const forceSignOut = signOut;
 
   return (
-    <AuthContext.Provider value={{ idToken, renderButton, signOut, forceSignOut }}>
+    <AuthContext.Provider value={{ idToken, renderButton, signOut, forceSignOut, gisReady }}>
       {children}
     </AuthContext.Provider>
   );
