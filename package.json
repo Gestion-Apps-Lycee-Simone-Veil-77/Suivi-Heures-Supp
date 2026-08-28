@@ -1,0 +1,19 @@
+{
+  "name": "suivi-hse-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend Suivi Heures Supp - remplace Google Apps Script (Sheets API + Gmail API + auth Google Workspace)",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "setup": "node server/setup.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "google-auth-library": "^9.14.1",
+    "googleapis": "^144.0.0",
+    "dotenv": "^16.4.5"
+  }
+}
