@@ -378,7 +378,7 @@ function BudgetSection({ budget, api, onChanged, hnfRestant }) {
         <form onSubmit={handleAdd} className="mb-4 flex flex-col gap-2 sm:flex-row">
           <input className="input flex-[2]" placeholder="Ex : Budget initial, Déplacement sortie janvier..."
                  value={description} onChange={e => setDescription(e.target.value)} required />
-          <input className="input flex-1" type="number" step="0.5" min="0" placeholder="Heures"
+          <input className="input flex-1" type="number" step="any" min="0" placeholder="Heures"
                  value={heures} onChange={e => setHeures(e.target.value)} required />
           <button className="btn-primary shrink-0" type="submit">Ajouter</button>
         </form>
