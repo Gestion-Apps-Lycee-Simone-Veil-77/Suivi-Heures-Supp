@@ -22,7 +22,6 @@ export default function Admin() {
   const [pending, setPending] = useState(null);
   const [toPay, setToPay] = useState(null);
   const [budget, setBudget] = useState(null);
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
   const [appUrl, setAppUrl] = useState('');
 
   const reloadPending = () => api.get('/admin/pending').then(setPending);
@@ -40,10 +39,6 @@ export default function Admin() {
     reloadToPay();
     reloadBudget();
     setAppUrl(window.location.origin);
-    // L'URL de la feuille elle-même n'est pas exposée par l'API (le serveur ne
-    // la connaît que par son ID) — configurez SPREADSHEET_ID_URL si besoin, ou
-    // laissez ce lien de côté et ouvrez la feuille depuis Drive directement.
-    setSpreadsheetUrl(import.meta.env.VITE_SPREADSHEET_URL || '');
   }, [allowed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hnfRestant = useMemo(() => {
@@ -80,8 +75,8 @@ export default function Admin() {
       <h2 className="page-title">Administration</h2>
 
       <div className="mb-5 flex flex-col gap-2 sm:flex-row">
-        {spreadsheetUrl && (
-          <a href={spreadsheetUrl} target="_blank" rel="noopener" className="btn-secondary">📊 Ouvrir le Google Sheet</a>
+        {me.spreadsheetUrl && (
+          <a href={me.spreadsheetUrl} target="_blank" rel="noopener" className="btn-secondary">📊 Ouvrir le Google Sheet</a>
         )}
       </div>
 

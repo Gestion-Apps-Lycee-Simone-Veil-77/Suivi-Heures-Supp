@@ -162,7 +162,6 @@ Si votre logo est un fichier Google Drive : partagez-le aussi avec l'adresse du 
    ```
 4. Ouvrez `client/.env` et remplissez :
    - `VITE_GOOGLE_OAUTH_CLIENT_ID` → **le même** Client ID qu'à l'étape 8.2.
-   - `VITE_SPREADSHEET_URL` → l'URL complète de votre feuille (optionnel, pour le bouton dans la page Admin).
 
 ---
 
@@ -230,7 +229,7 @@ Si quelque chose ne fonctionne pas, regardez les messages d'erreur dans les deux
 6. Remettez `GOOGLE_SERVICE_ACCOUNT_KEY_FILE=service-account.json` dans les variables d'environnement (Render place les fichiers secrets à la racine du service).
 7. **Create Web Service**. Render installe, construit et démarre l'app (comptez quelques minutes la première fois). Une URL du type `https://suivi-hse.onrender.com` vous est attribuée.
 8. Retournez dans Google Cloud Console (étape 5) → votre identifiant OAuth → ajoutez cette URL Render dans **Origines JavaScript autorisées**.
-9. Sur Render, ajoutez aussi `VITE_GOOGLE_OAUTH_CLIENT_ID` et `VITE_SPREADSHEET_URL` en variables d'environnement (le build du frontend en a besoin au moment du `npm run build`).
+9. Sur Render, ajoutez aussi `VITE_GOOGLE_OAUTH_CLIENT_ID` en variable d'environnement (le build du frontend en a besoin au moment du `npm run build`). Le bouton "Ouvrir le Google Sheet" utilise directement `SPREADSHEET_ID` côté serveur, rien à ajouter pour lui.
 10. Redéployez (**Manual Deploy** → **Deploy latest commit**) pour prendre en compte les nouvelles variables.
 
 **Note sur le plan gratuit Render** : le service s'endort après 15 minutes d'inactivité et met quelques secondes à se réveiller au premier accès suivant. Si c'est gênant pour vos utilisateurs, passez à un plan payant (~7$/mois) une fois l'app validée.

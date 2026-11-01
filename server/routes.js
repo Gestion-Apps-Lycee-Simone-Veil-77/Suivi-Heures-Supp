@@ -55,7 +55,13 @@ router.get('/me', wrap(async req => {
   ]);
   // Utilisé par le menu pour transformer "Mr. LEGER" en lien mailto: — null
   // si aucune ligne "Directeur" n'est encore renseignée dans ConfigAdmin.
-  return { ...identite, isAdmin: admin, directeurEmail: directorEmails[0] || null, directeurNom };
+  // spreadsheetUrl est dérivée de SPREADSHEET_ID (la seule source déjà
+  // utilisée pour toutes les opérations réelles), pas d'une variable séparée
+  // qui pouvait partir sur une autre feuille sans que personne ne le remarque.
+  return {
+    ...identite, isAdmin: admin, directeurEmail: directorEmails[0] || null, directeurNom,
+    spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${config.spreadsheetId}/edit`
+  };
 }));
 
 // ---------- Configs / bootstrap formulaires ----------
